@@ -2,5 +2,8 @@
 
 export(ganancia)
 export(kaggle_csv)
-export(lmem)
+export(levantar_clientes)
+export(rf_ranger)
 import(data.table)
+import(randomForest)
+import(ranger)
