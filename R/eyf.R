@@ -363,7 +363,7 @@ feature_eng = function(d, historico_desde = 202001, top_variables_importantes = 
   # - VARIANZA en los últimos M meses, empezando del mes PRESENTE
 
   if (historico_de != 0) {
-    presente = desde
+    presente = historico_desde
     para_atras = historico_de # los últimos M meses
     n = top_variables_importantes # N variables más importantes a procesar
 
