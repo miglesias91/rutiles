@@ -12,7 +12,8 @@ feature_eng(
   combinar_tarjetas = T,
   historicos_de_tarjetas = T,
   borrar_originales_de_tarjetas = F,
-  correccion_catedra = T
+  correccion_catedra = T,
+  devolver_modelo = F
 )
 }
 \arguments{

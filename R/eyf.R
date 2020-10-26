@@ -192,7 +192,8 @@ rt_rpart = function(a_predecir, positivo, complejidad, n_split, nodo_min, profun
 #' @import data.table
 #' @export
 feature_eng = function(d, historico_desde = 202001, top_variables_importantes = 10, historico_de = 7,
-                       combinar_tarjetas = T, historicos_de_tarjetas = T, borrar_originales_de_tarjetas = F, correccion_catedra = T) {
+                       combinar_tarjetas = T, historicos_de_tarjetas = T, borrar_originales_de_tarjetas = F, correccion_catedra = T,
+                       devolver_modelo = F) {
   # CORRECCIÓN DE GUSTAVO
   if (correccion_catedra) {
     dataset[ foto_mes==201701,  ccajas_consultas   := NA ]
@@ -400,5 +401,8 @@ feature_eng = function(d, historico_desde = 202001, top_variables_importantes = 
               ]
     }
   }
-  return(dataset)
+
+  if (devolver_modelo){
+    return(dataset)
+  }
 }
