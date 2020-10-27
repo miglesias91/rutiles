@@ -16,7 +16,8 @@ rt_rpart(
   n_cv = 0,
   salida_csv = "~/rt_rpart.csv",
   ver_ganancia = T,
-  kagglecsv = T
+  kagglecsv = T,
+  devolver_modelo = F
 )
 }
 \arguments{

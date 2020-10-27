@@ -17,5 +17,6 @@ Imports:
     data.table,
     randomForest,
     ranger,
-    rpart
+    rpart,
+    stringr
 

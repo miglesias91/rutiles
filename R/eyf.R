@@ -146,7 +146,8 @@ rf_ranger = function(a_predecir, positivo, n_arboles, n_split, nodo_min, profund
 #' @import data.table
 #' @import rpart
 #' @export
-rt_rpart = function(a_predecir, positivo, complejidad, n_split, nodo_min, profundidad_max, entrenamiento, evaluacion, n_cv = 0, salida_csv = '~/rt_rpart.csv', ver_ganancia = T, kagglecsv = T) {
+rt_rpart = function(a_predecir, positivo, complejidad, n_split, nodo_min, profundidad_max, entrenamiento, evaluacion, n_cv = 0,
+                    salida_csv = '~/rt_rpart.csv', ver_ganancia = T, kagglecsv = T, devolver_modelo = F) {
   # corro rpart
   set.seed(2020)
   modelo = rpart(formula = paste0(a_predecir, ' ~ .'),
@@ -180,20 +181,31 @@ rt_rpart = function(a_predecir, positivo, complejidad, n_split, nodo_min, profun
     rutiles::kaggle_csv(dkaggle, path = salida_csv) # escribo output para kaggle
   }
 
-  return(modelo)
+  if (devolver_modelo){
+    return(modelo)
+  }
 }
 
 #' Ingeniería de features para el dataset crudo de clientes.
 #'
 #' @param d dataset clientes original -se devuelve copia-
-#' @param desde mes desde el cual se empieza el procesamiento -luego, se procesan los meses anteriores-
-#' @param top_variables_importantes número de variables importantes a tener en cuenta para el cálculo de históricos
-#' @param historico_de número de meses anteriores que usa para calcular el histórico del mes actual
+#' @param historico_desde mes desde el cual se empieza el procesamiento -luego, se procesan los meses anteriores-
+#' @param ventana_historico cantidad de meses para calcular valores históricos
+#' @param max_tarjetas si calcula o no el máximo de las tarjetas
+#' @param min_tarjetas si calcula o no el mínimo de las tarjetas
+#' @param borrar_originales_de_tarjetas si elimina las variables originales de tarjetas
+#' @param correccion_catedra si aplica la correción de la catedra
+#' @param acum_historico si calcula el acumulado en los meses historicos
+#' @param var_historico si calcula la varianza en los meses historicos
+#' @param diff_historico si calcula la diferencia en los meses historicos
 #' @import data.table
+#' @import stringr
 #' @export
-feature_eng = function(d, historico_desde = 202001, top_variables_importantes = 10, historico_de = 7,
-                       combinar_tarjetas = T, historicos_de_tarjetas = T, borrar_originales_de_tarjetas = F, correccion_catedra = T,
-                       devolver_modelo = F) {
+feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
+                       max_tarjetas = T, min_tarjetas = T,
+                       borrar_originales_de_tarjetas = T, correccion_catedra = T,
+                       acum_historico = T, var_historico = T, diff_historico = T) {
+
   # CORRECCIÓN DE GUSTAVO
   if (correccion_catedra) {
     dataset[ foto_mes==201701,  ccajas_consultas   := NA ]
@@ -249,137 +261,50 @@ feature_eng = function(d, historico_desde = 202001, top_variables_importantes = 
   # VARIABLES DE TARJETAS
   # hago la suma y el minimo de las variables de las tarjetas.
 
-  if (combinar_tarjetas) {
-    variables_tarjetas = substring(str_subset(names(dataset), 'Visa'), str_length('Visa_') + 1)
+  variables_tarjetas = substring(str_subset(names(dataset), 'Visa'), str_length('Visa_') + 1)
 
-    for (v in variables_tarjetas) {
-      visa = paste0('Visa_',v)
-      master = paste0('Master_',v)
-      visa_y_master = c(visa,master)
+  for (v in variables_tarjetas) {
+    visa_y_master = c(paste0('Visa_',v), paste0('Master_',v))
 
-      suma = paste0('suma_', v)
-      min = paste0('min_', v)
-      suma_min = c(suma,min)
+    max = paste0('max_', v)
+    min = paste0('min_', v)
 
+    # maximio
+    if (max_tarjetas) {
       dataset[,
-              (suma_min) := list(rowSums(.SD, na.rm = T), do.call(pmin, c(.SD, list(na.rm = T)))),
+              (max) := list(do.call(pmax, c(.SD, list(na.rm = T)))),
               .SDcols = visa_y_master]
     }
 
-    if (borrar_originales_de_tarjetas) {
-      de_tarjetas = str_subset(names(dataset), 'Visa|Master')
-      data.table::set(dataset, i = NULL, j = de_tarjetas, value = NULL)
+    # mininimo
+    if (min_tarjetas) {
+      dataset[,
+              (min) := list(do.call(pmin, c(.SD, list(na.rm = T)))),
+              .SDcols = visa_y_master]
     }
   }
 
-  # HISTÓRICOS DE LAS VARIABLES IMPORTANTES
-  # Establecemos una lista con las variables más importantes, entrenando rpart para los meses [201906, 201909].
-  # Se sacaron las variables pertenecientes a las tarjetas porque ya se procesaron antes.
-  # Para cada una de las elegidas, se calculan valores históricos.
-
-  variables_importantes =
-    c('mcuentas_saldo'
-      , 'mcuenta_corriente'
-      , 'mdescubierto_preacordado'
-      , 'ctrx_quarter'
-      , 'mcaja_ahorro'
-      , 'mrentabilidad'
-      , 'mactivos_margen'
-      , 'cproductos'
-      , 'ctarjeta_visa'
-      , 'mprestamos_personales'
-      , 'mrentabilidad_annual'
-      , 'ctarjeta_master'
-      , 'cprestamos_personales'
-      , 'mpasivos_margen'
-      # , 'numero_de_cliente' no la tengo en cuenta porque no varía
-      , 'ccomisiones_otras'
-      , 'cseguro_vida'
-      , 'mcomisiones'
-      , 'cliente_edad'
-      , 'cliente_antiguedad'
-      , 'thomebanking'
-      , 'cextraccion_autoservicio'
-      , 'mcomisiones_otras'
-      , 'mcaja_ahorro_dolares'
-      , 'mextraccion_autoservicio'
-      , 'catm_trx'
-      , 'internet'
-      , 'active_quarter'
-      , 'mttarjeta_visa_debitos_automaticos'
-      # , 'foto_mes' no la tengo en cuenta porque claramente siempre aumenta en 1, salvo cuando cambia de año.
-      , 'cseguro_accidentes_personales'
-      , 'ctarjeta_visa_transacciones'
-      , 'mtarjeta_visa_consumo'
-      , 'ctarjeta_visa_debitos_automaticos'
-      , 'cseguro_vivienda'
-      , 'ccaja_ahorro'
-      , 'mpayroll'
-      , 'matm'
-      , 'cpayroll_trx'
-      , 'ccajas_depositos'
-      , 'tpaquete3'
-      , 'mautoservicio'
-      , 'ccajas_consultas'
-      , 'ccajas_otras'
-      , 'mcomisiones_mantenimiento'
-      , 'mtarjeta_master_consumo'
-      , 'ctarjeta_debito_transacciones'
-      , 'ccheques_depositados_rechazados'
-      , 'mcheques_depositados_rechazados'
-      , 'mcuenta_debitos_automaticos'
-      , 'tcuentas'
-      , 'mtransferencias_recibidas'
-      , 'mcheques_emitidos_rechazados'
-      , 'ccheques_emitidos'
-      , 'mcheques_emitidos'
-      , 'ccuenta_debitos_automaticos'
-      , 'ctransferencias_recibidas'
-      , 'mttarjeta_master_debitos_automaticos'
-      , 'chomebanking_transacciones'
-      , 'ccheques_emitidos_rechazados'
-      , 'mplazo_fijo_dolares'
-      , 'catm_trx_other'
-      , 'matm_other'
-      , 'ccajas_transacciones'
-      , 'mcaja_ahorro_adicional'
-      , 'cpagomiscuentas'
-      , 'mpagomiscuentas'
-      , 'cinversion2'
-      , 'ccajas_extracciones'
-      , 'mtransferencias_emitidas'
-      , 'cinversion1'
-      , 'minversion2'
-      , 'ctarjeta_debito'
-      , 'ccallcenter_transacciones'
-      , 'cplazo_fijo'
-      , 'mforex_buy'
-      , 'ccaja_seguridad'
-      , 'tpaquete4'
-      , 'ctarjeta_master_transacciones'
-      , 'cforex_buy')
+  if (borrar_originales_de_tarjetas) {
+    de_tarjetas = str_subset(names(dataset), 'Visa|Master')
+    data.table::set(dataset, i = NULL, j = de_tarjetas, value = NULL)
+  }
 
   # en cada fila, calculamos para las primeras N variables:
   # - ACUMULADO en los últimos M meses, empezando del mes PRESENTE
-  # - VARIANZA en los últimos M meses, empezando del mes PRESENTE
+  # - DIFERENCIA en los últimos M meses, empezando del mes PRESENTE
 
-  if (historico_de != 0) {
-    presente = historico_desde
-    para_atras = historico_de # los últimos M meses
-    n = top_variables_importantes # N variables más importantes a procesar
+  if (ventana_historico != 0) {
 
-    n_importantes = variables_importantes[1:n]
+    variables = names(dataset)
+    variables = variables[!( variables %in% c('numero_de_cliente', 'foto_mes', 'baja'))]
 
-    if (combinar_tarjetas && historicos_de_tarjetas) {
-      n_importantes = c(n_importantes, paste0('suma_', variables_tarjetas), paste0('min_', variables_tarjetas))
-    }
-
-    n_sumas = paste0('acum_', n_importantes)
-    n_var = paste0('var_', n_importantes)
-    n_todas = c(n_sumas, n_var)
+    n_acum = paste0('acum_', variables)
+    n_var = paste0('var_', variables)
+    n_diff = paste0('diff_', variables)
 
     # me qedo con los meses que voy a recorrer
-    meses = unique(dataset$foto_mes)[1:match(presente, unique(dataset$foto_mes))]
+    meses = unique(dataset$foto_mes)
+    meses = meses[1:match(historico_desde, meses)]
 
     # doy vuelta la lista de meses para arrancar por el último
     meses = rev(meses)
@@ -388,21 +313,45 @@ feature_eng = function(d, historico_desde = 202001, top_variables_importantes = 
     for (mes in meses) {
 
       # calculo suma y varianza para cada una de las N variables
-      desde = meses[match(mes, meses) + para_atras]
+      desde = meses[match(mes, meses) + ventana_historico]
       # si es NA, entonces seteo en más pequeño
       if (is.na(desde)) {
         desde = min(meses)
+        dataset[foto_mes < desde, (n_acum) := NA]
+        dataset[foto_mes < desde, (n_var) := NA]
+        dataset[foto_mes < desde, (n_diff) := NA]
+        break
       }
       hasta = mes
-      dataset[desde <= foto_mes & foto_mes <= hasta,
-              (n_todas) := c(lapply(.SD, sum, na.rm = T),lapply(.SD, var, na.rm = T)),
-              by = numero_de_cliente,
-              .SDcols = n_importantes
-              ]
+
+      # acumulado
+      if (acum_historico) {
+        dataset[desde <= foto_mes & foto_mes <= hasta,
+                (n_acum) := c(lapply(.SD, sum, na.rm = T)),
+                by = numero_de_cliente,
+                .SDcols = variables
+                ]
+      }
+
+      # varianza
+      if (var_historico) {
+        dataset[desde <= foto_mes & foto_mes <= hasta,
+                (n_var) := c(lapply(.SD, var, na.rm = T)),
+                by = numero_de_cliente,
+                .SDcols = variables
+                ]
+      }
+
+      # diferencia
+      if (diff_historico) {
+        dataset[desde <= foto_mes & foto_mes <= hasta,
+                (n_diff) := c(lapply(.SD, function(x) {return (sum(diff(x), na.rm = T))} )),
+                by = numero_de_cliente,
+                .SDcols = variables
+                ]
+      }
     }
   }
 
-  if (devolver_modelo){
-    return(dataset)
-  }
+  return(dataset)
 }
