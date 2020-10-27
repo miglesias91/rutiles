@@ -14,7 +14,8 @@ feature_eng(
   correccion_catedra = T,
   acum_historico = T,
   var_historico = T,
-  diff_historico = T
+  diff_historico = T,
+  log = T
 )
 }
 \arguments{

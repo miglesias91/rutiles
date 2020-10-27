@@ -46,7 +46,7 @@ kaggle_csv = function(data = NULL, clientes = NULL, estimulos = NULL, path='~/in
   }
 
   if (is.null(data)) {
-    data = data.table('numero_de_cliente'=clientes, 'estimulos'=estimulos)
+    data = data.table('numero_de_cliente'=clientes, 'estimulo'=estimulos)
   }
 
   fwrite(data, sep=',',  file=path)
@@ -327,10 +327,9 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
       if (is.na(desde)) {
         if (log) cat('alcanzado el ultimo mes. Saliendo del for y saliendo del script.')
 
-        desde = min(meses)
-        dataset[foto_mes < desde, (n_acum) := NA]
-        dataset[foto_mes < desde, (n_var) := NA]
-        dataset[foto_mes < desde, (n_diff) := NA]
+        dataset[foto_mes < mes, (n_acum) := NA]
+        dataset[foto_mes < mes, (n_var) := NA]
+        dataset[foto_mes < mes, (n_diff) := NA]
         break
       }
       hasta = mes
