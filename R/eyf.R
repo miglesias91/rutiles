@@ -204,10 +204,13 @@ rt_rpart = function(a_predecir, positivo, complejidad, n_split, nodo_min, profun
 feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
                        max_tarjetas = T, min_tarjetas = T,
                        borrar_originales_de_tarjetas = T, correccion_catedra = T,
-                       acum_historico = T, var_historico = T, diff_historico = T) {
+                       acum_historico = T, var_historico = T, diff_historico = T,
+                       log = T) {
 
   # CORRECCIÓN DE GUSTAVO
   if (correccion_catedra) {
+    if (log) cat('corrección de catedra')
+
     dataset[ foto_mes==201701,  ccajas_consultas   := NA ]
     dataset[ foto_mes==201702,  ccajas_consultas   := NA ]
 
@@ -263,11 +266,14 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
 
   variables_tarjetas = substring(str_subset(names(dataset), 'Visa'), str_length('Visa_') + 1)
 
+  if (log) cat('procesando variables de tarjeta')
   for (v in variables_tarjetas) {
     visa_y_master = c(paste0('Visa_',v), paste0('Master_',v))
 
     max = paste0('max_', v)
     min = paste0('min_', v)
+
+    if (log) cat('procesando:', v)
 
     # maximio
     if (max_tarjetas) {
@@ -285,6 +291,7 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
   }
 
   if (borrar_originales_de_tarjetas) {
+    if (log) cat('borrando originales de tarjeta')
     de_tarjetas = str_subset(names(dataset), 'Visa|Master')
     data.table::set(dataset, i = NULL, j = de_tarjetas, value = NULL)
   }
@@ -293,6 +300,7 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
   # - ACUMULADO en los últimos M meses, empezando del mes PRESENTE
   # - DIFERENCIA en los últimos M meses, empezando del mes PRESENTE
 
+  if (log) cat('procesando historicos')
   if (ventana_historico != 0) {
 
     variables = names(dataset)
@@ -311,11 +319,14 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
 
     # empiezo a procesar para cada mes
     for (mes in meses) {
+      if (log) cat('procesando historicos de mes', mes)
 
       # calculo suma y varianza para cada una de las N variables
       desde = meses[match(mes, meses) + ventana_historico]
       # si es NA, entonces seteo en más pequeño
       if (is.na(desde)) {
+        if (log) cat('alcanzado el ultimo mes. Saliendo del for y saliendo del script.')
+
         desde = min(meses)
         dataset[foto_mes < desde, (n_acum) := NA]
         dataset[foto_mes < desde, (n_var) := NA]
@@ -326,6 +337,8 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
 
       # acumulado
       if (acum_historico) {
+        if (log) cat('procesando acumulacion historica de mes', mes)
+
         dataset[desde <= foto_mes & foto_mes <= hasta,
                 (n_acum) := c(lapply(.SD, sum, na.rm = T)),
                 by = numero_de_cliente,
@@ -335,6 +348,8 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
 
       # varianza
       if (var_historico) {
+        if (log) cat('procesando varianza historica de mes', mes)
+
         dataset[desde <= foto_mes & foto_mes <= hasta,
                 (n_var) := c(lapply(.SD, var, na.rm = T)),
                 by = numero_de_cliente,
@@ -344,6 +359,8 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
 
       # diferencia
       if (diff_historico) {
+        if (log) cat('procesando diferencia historica de mes', mes)
+
         dataset[desde <= foto_mes & foto_mes <= hasta,
                 (n_diff) := c(lapply(.SD, function(x) {return (sum(diff(x), na.rm = T))} )),
                 by = numero_de_cliente,
@@ -352,6 +369,8 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
       }
     }
   }
+
+  if (log) cat('FIN. devuelvo dataset y termino ejecucion.')
 
   return(dataset)
 }
