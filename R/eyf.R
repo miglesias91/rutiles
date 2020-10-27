@@ -9,9 +9,12 @@
 #' @import data.table
 #' @import randomForest
 #' @export
-levantar_clientes = function(path, nombre_clase_binaria = 'baja', positivo = 'si', negativo = 'no', fix_nulos = F) {
+levantar_clientes = function(path, nombre_clase_binaria = 'baja', positivo = 'si', negativo = 'no', corregir_clase = T, fix_nulos = F) {
   dataset = fread(path, stringsAsFactors= TRUE)
-  dataset[, c(nombre_clase_binaria) := as.factor(ifelse(clase_ternaria == 'BAJA+2', 'si', 'no'))]
+
+  if (corregir_clase) {
+    dataset[, c(nombre_clase_binaria) := as.factor(ifelse(clase_ternaria == 'BAJA+2', 'si', 'no'))]
+  }
 
   # y elimino la clase ternaria
   dataset[, clase_ternaria := NULL]

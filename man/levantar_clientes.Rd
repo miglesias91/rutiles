@@ -9,6 +9,7 @@ levantar_clientes(
   nombre_clase_binaria = "baja",
   positivo = "si",
   negativo = "no",
+  corregir_clase = T,
   fix_nulos = F
 )
 }
