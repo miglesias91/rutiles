@@ -13,7 +13,7 @@ levantar_clientes = function(path, nombre_clase_binaria = 'baja', positivo = 'si
   dataset = fread(path, stringsAsFactors= TRUE)
 
   if (nombre_clase_binaria %in% colnames(dataset) == F) {
-    dataset[, c(nombre_clase_binaria) := as.factor(ifelse(clase_ternaria == 'BAJA+2', 'si', 'no'))]
+    dataset[, c(nombre_clase_binaria) := as.factor(ifelse(clase_ternaria == 'BAJA+2', positivo, negativo))]
 
     # y elimino la clase ternaria
     dataset[, clase_ternaria := NULL]
