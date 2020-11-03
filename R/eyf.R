@@ -340,42 +340,52 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
       }
       hasta = mes
 
+      # TODO JUNTO
+      if (log) cat('procesando TODO JUNTO acum, var y diff historica de mes', mes, '\n')
+      dataset[desde <= foto_mes & foto_mes <= hasta,
+              (n_acum, n_var, n_diff) := c(lapply(.SD, function(x) {return (sum(x, na.rm =T) / (max(x) - min(x)))} ),
+                                           lapply(.SD, function(x) { return( sd(x, na.rm = T) / (max(x) - min(x)))} )
+                                           lapply(.SD, function(x) { return (sum(diff(x), na.rm = T) / mean(x))} )),
+              by = numero_de_cliente,
+              .SDcols = variables
+              ]
+
       # acumulado
-      if (acum_historico) {
-        if (log) cat('procesando acumulacion historica de mes', mes, '\n')
-
-        dataset[desde <= foto_mes & foto_mes <= hasta,
-                # (n_acum) := c(lapply(.SD, sum, na.rm = T)),
-                (n_acum) := c(lapply(.SD, function(x) {return (sum(x, na.rm =T) / (max(x) - min(x)))} )),
-                # PROBAR: function(x) {sum(x, na.rm =T) / (max(x) - min(x))}
-                by = numero_de_cliente,
-                .SDcols = variables
-                ]
-      }
-
-      # varianza
-      if (var_historico) {
-        if (log) cat('procesando varianza historica de mes', mes, '\n')
-
-        dataset[desde <= foto_mes & foto_mes <= hasta,
-                # (n_var) := c(lapply(.SD, var, na.rm = T)),
-                (n_var) := c(lapply(.SD, function(x) { return( sd(x, na.rm = T) / (max(x) - min(x)))} )),
-                by = numero_de_cliente,
-                .SDcols = variables
-                ]
-      }
-
-      # diferencia
-      if (diff_historico) {
-        if (log) cat('procesando diferencia historica de mes', mes, '\n')
-
-        dataset[desde <= foto_mes & foto_mes <= hasta,
-                # (n_diff) := c(lapply(.SD, function(x) {return (sum(diff(x), na.rm = T))} )),
-                (n_diff) := c(lapply(.SD, function(x) { return (sum(diff(x), na.rm = T) / mean(x))} )),
-                by = numero_de_cliente,
-                .SDcols = variables
-                ]
-      }
+      # if (acum_historico) {
+      #   if (log) cat('procesando acumulacion historica de mes', mes, '\n')
+      #
+      #   dataset[desde <= foto_mes & foto_mes <= hasta,
+      #           # (n_acum) := c(lapply(.SD, sum, na.rm = T)),
+      #           (n_acum) := c(lapply(.SD, function(x) {return (sum(x, na.rm =T) / (max(x) - min(x)))} )),
+      #           # PROBAR: function(x) {sum(x, na.rm =T) / (max(x) - min(x))}
+      #           by = numero_de_cliente,
+      #           .SDcols = variables
+      #           ]
+      # }
+      #
+      # # varianza
+      # if (var_historico) {
+      #   if (log) cat('procesando varianza historica de mes', mes, '\n')
+      #
+      #   dataset[desde <= foto_mes & foto_mes <= hasta,
+      #           # (n_var) := c(lapply(.SD, var, na.rm = T)),
+      #           (n_var) := c(lapply(.SD, function(x) { return( sd(x, na.rm = T) / (max(x) - min(x)))} )),
+      #           by = numero_de_cliente,
+      #           .SDcols = variables
+      #           ]
+      # }
+      #
+      # # diferencia
+      # if (diff_historico) {
+      #   if (log) cat('procesando diferencia historica de mes', mes, '\n')
+      #
+      #   dataset[desde <= foto_mes & foto_mes <= hasta,
+      #           # (n_diff) := c(lapply(.SD, function(x) {return (sum(diff(x), na.rm = T))} )),
+      #           (n_diff) := c(lapply(.SD, function(x) { return (sum(diff(x), na.rm = T) / mean(x))} )),
+      #           by = numero_de_cliente,
+      #           .SDcols = variables
+      #           ]
+      # }
     }
   }
 
