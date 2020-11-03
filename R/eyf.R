@@ -212,7 +212,7 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
 
   # CORRECCIÓN DE GUSTAVO
   if (correccion_catedra) {
-    if (log) cat('corrección de catedra')
+    if (log) cat('corrección de catedra\n')
 
     dataset[ foto_mes==201701,  ccajas_consultas   := NA ]
     dataset[ foto_mes==201702,  ccajas_consultas   := NA ]
@@ -266,17 +266,20 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
 
   # VARIABLES DE TARJETAS
   # hago la suma y el minimo de las variables de las tarjetas.
+  renombradas = c(paste0('Master_', sub('_master_', '_', str_subset(names(dataset), '_master_'))), paste0('Visa_', sub('_visa_', '_', str_subset(names(dataset), '_visa_'))))
+  a_renombrar = c(str_subset(names(dataset), '_master_'), str_subset(names(dataset), '_visa_'))
+  setnames(dataset, a_renombrar, renombradas)
 
   variables_tarjetas = substring(str_subset(names(dataset), 'Visa'), str_length('Visa_') + 1)
 
-  if (log) cat('procesando variables de tarjeta')
+  if (log) cat('procesando variables de tarjeta\n')
   for (v in variables_tarjetas) {
     visa_y_master = c(paste0('Visa_',v), paste0('Master_',v))
 
     max = paste0('max_', v)
     min = paste0('min_', v)
 
-    if (log) cat('procesando:', v)
+    if (log) cat('procesando:', v, '\n')
 
     # maximio
     if (max_tarjetas) {
@@ -294,7 +297,7 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
   }
 
   if (borrar_originales_de_tarjetas) {
-    if (log) cat('borrando originales de tarjeta')
+    if (log) cat('borrando originales de tarjeta\n')
     de_tarjetas = str_subset(names(dataset), 'Visa|Master')
     data.table::set(dataset, i = NULL, j = de_tarjetas, value = NULL)
   }
@@ -303,7 +306,7 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
   # - ACUMULADO en los últimos M meses, empezando del mes PRESENTE
   # - DIFERENCIA en los últimos M meses, empezando del mes PRESENTE
 
-  if (log) cat('procesando historicos')
+  if (log) cat('procesando historicos\n')
   if (ventana_historico != 0) {
 
     variables = names(dataset)
@@ -322,13 +325,13 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
 
     # empiezo a procesar para cada mes
     for (mes in meses) {
-      if (log) cat('procesando historicos de mes', mes)
+      if (log) cat('procesando historicos de mes', mes, '\n')
 
       # calculo suma y varianza para cada una de las N variables
       desde = meses[match(mes, meses) + ventana_historico]
       # si es NA, entonces seteo en más pequeño
       if (is.na(desde)) {
-        if (log) cat('alcanzado el ultimo mes. Saliendo del for y saliendo del script.')
+        if (log) cat('alcanzado el ultimo mes. Saliendo del for y saliendo del script.\n')
 
         dataset[foto_mes < mes, (n_acum) := NA]
         dataset[foto_mes < mes, (n_var) := NA]
@@ -339,10 +342,12 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
 
       # acumulado
       if (acum_historico) {
-        if (log) cat('procesando acumulacion historica de mes', mes)
+        if (log) cat('procesando acumulacion historica de mes', mes, '\n')
 
         dataset[desde <= foto_mes & foto_mes <= hasta,
-                (n_acum) := c(lapply(.SD, sum, na.rm = T)),
+                # (n_acum) := c(lapply(.SD, sum, na.rm = T)),
+                (n_acum) := c(lapply(.SD, function(x) {return (sum(x, na.rm =T) / (max(x) - min(x)))} )),
+                # PROBAR: function(x) {sum(x, na.rm =T) / (max(x) - min(x))}
                 by = numero_de_cliente,
                 .SDcols = variables
                 ]
@@ -350,10 +355,11 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
 
       # varianza
       if (var_historico) {
-        if (log) cat('procesando varianza historica de mes', mes)
+        if (log) cat('procesando varianza historica de mes', mes, '\n')
 
         dataset[desde <= foto_mes & foto_mes <= hasta,
-                (n_var) := c(lapply(.SD, var, na.rm = T)),
+                # (n_var) := c(lapply(.SD, var, na.rm = T)),
+                (n_var) := c(lapply(.SD, function(x) { return( sd(x, na.rm = T) / (max(x) - min(x)))} )),
                 by = numero_de_cliente,
                 .SDcols = variables
                 ]
@@ -361,10 +367,11 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
 
       # diferencia
       if (diff_historico) {
-        if (log) cat('procesando diferencia historica de mes', mes)
+        if (log) cat('procesando diferencia historica de mes', mes, '\n')
 
         dataset[desde <= foto_mes & foto_mes <= hasta,
-                (n_diff) := c(lapply(.SD, function(x) {return (sum(diff(x), na.rm = T))} )),
+                # (n_diff) := c(lapply(.SD, function(x) {return (sum(diff(x), na.rm = T))} )),
+                (n_diff) := c(lapply(.SD, function(x) { return (sum(diff(x), na.rm = T) / mean(x))} )),
                 by = numero_de_cliente,
                 .SDcols = variables
                 ]
@@ -372,7 +379,7 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
     }
   }
 
-  if (log) cat('FIN. devuelvo dataset y termino ejecucion.')
+  if (log) cat('FIN. devuelvo dataset y termino ejecucion.\n')
 
   return(dataset)
 }
