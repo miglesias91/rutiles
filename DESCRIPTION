@@ -18,5 +18,7 @@ Imports:
     randomForest,
     ranger,
     rpart,
-    stringr
+    stringr,
+    future.apply
+
 

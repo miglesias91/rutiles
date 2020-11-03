@@ -203,12 +203,15 @@ rt_rpart = function(a_predecir, positivo, complejidad, n_split, nodo_min, profun
 #' @param diff_historico si calcula la diferencia en los meses historicos
 #' @import data.table
 #' @import stringr
+#' @import future.apply
 #' @export
 feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
                        max_tarjetas = T, min_tarjetas = T,
                        borrar_originales_de_tarjetas = T, correccion_catedra = T,
                        acum_historico = T, var_historico = T, diff_historico = T,
                        log = T) {
+
+  plan(multiprocess)
 
   # CORRECCIÓN DE GUSTAVO
   if (correccion_catedra) {
@@ -344,9 +347,9 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
       # TODO JUNTO
       if (log) cat('procesando TODO JUNTO acum, var y diff historica de mes', mes, '\n')
       dataset[desde <= foto_mes & foto_mes <= hasta,
-              (n_todo) := c(lapply(.SD, function(x) {return (sum(x, na.rm =T) / (max(x) - min(x)))} ),
-                            lapply(.SD, function(x) { return( sd(x, na.rm = T) / (max(x) - min(x)))} ),
-                            lapply(.SD, function(x) { return (sum(diff(x), na.rm = T) / mean(x))} )),
+              (n_todo) := c(future_lapply(.SD, function(x) {return (sum(x, na.rm =T) / (max(x) - min(x)))} ),
+                            future_lapply(.SD, function(x) { return( sd(x, na.rm = T) / (max(x) - min(x)))} ),
+                            future_lapply(.SD, function(x) { return (sum(diff(x), na.rm = T) / mean(x))} )),
               by = numero_de_cliente,
               .SDcols = variables
               ]
