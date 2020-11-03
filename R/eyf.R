@@ -204,6 +204,7 @@ rt_rpart = function(a_predecir, positivo, complejidad, n_split, nodo_min, profun
 #' @import data.table
 #' @import stringr
 #' @import future.apply
+#' @import future
 #' @export
 feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
                        max_tarjetas = T, min_tarjetas = T,

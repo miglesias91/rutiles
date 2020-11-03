@@ -19,6 +19,7 @@ Imports:
     ranger,
     rpart,
     stringr,
+    future,
     future.apply
 
 
