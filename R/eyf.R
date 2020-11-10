@@ -394,7 +394,7 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
     }
 
     if (grabar_temp) {
-        fwrite(dataset, file = paste0(path_temp, '.', mes), sep = '\t')
+        fwrite(dataset, file = paste0(path_temp, '.', mes, '.gz'), sep = '\t')
       }
   }
 
