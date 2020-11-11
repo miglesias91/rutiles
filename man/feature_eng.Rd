@@ -17,7 +17,7 @@ feature_eng(
   diff_historico = T,
   log = T,
   grabar_temp = T,
-  temp = path_temp
+  temp = "-"
 )
 }
 \arguments{

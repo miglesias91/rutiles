@@ -210,7 +210,7 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
                        max_tarjetas = T, min_tarjetas = T,
                        borrar_originales_de_tarjetas = T, correccion_catedra = T,
                        acum_historico = T, var_historico = T, diff_historico = T,
-                       log = T, grabar_temp = T, temp = path_temp) {
+                       log = T, grabar_temp = T, temp = '-') {
 
   plan(multiprocess)
 
@@ -391,11 +391,11 @@ feature_eng = function(d, historico_desde = 202001, ventana_historico = 2,
                 .SDcols = variables
                 ]
       }
-    }
 
-    if (grabar_temp) {
-        fwrite(dataset, file = paste0(path_temp, '.', mes, '.gz'), sep = '\t')
+      if (grabar_temp) {
+        fwrite(dataset, file = paste0(temp, '.', mes, '.gz'), sep = '\t')
       }
+    }
   }
 
   if (log) cat('FIN. devuelvo dataset y termino ejecucion.\n')
